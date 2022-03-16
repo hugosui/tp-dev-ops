@@ -35,5 +35,4 @@ jobs:
       - name: Install node.js packages
         run: |
           npm install
-          npm run ci:frontend:test
-          npm run test
+          chmod +x mvnw && npm run ci:backend:test
