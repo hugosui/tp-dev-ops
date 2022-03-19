@@ -35,7 +35,7 @@ jobs:
       - name: Install node.js packages
         run: |
           npm install
-          chmod +x mvnw && npm run ci:backend:test
+          chmod +x mvnw 
           ./mvnw -ntp verify -DskipTests --batch-mode "-Pprod" "-Pe2e" "-Denforcer.skip=true"
           npm run ci:e2e:prepare:docker
           npm run ci:e2e:run
