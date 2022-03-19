@@ -37,5 +37,5 @@ jobs:
           npm install
           chmod +x mvnw 
           npm run ci:e2e:prepare:docker
-          npm run ci:e2e:run
-          npm run ci:e2e:teardown
+          npm run e2e
+          
