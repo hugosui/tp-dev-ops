@@ -36,4 +36,9 @@ jobs:
         run: |
           npm install
           chmod +x mvnw && npm run ci:backend:test
-          npm run ci:frontend:test
+      - name: launch IC
+        run: |
+        ./mvnw -ntp verify -DskipTests --batch-mode "-Pprod" "-Pe2e" "-Denforcer.skip=true"
+        npm run ci:e2e:prepare:docker
+        npm run ci:e2e:run
+        npm run ci:e2e:teardown
