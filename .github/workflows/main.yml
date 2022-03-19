@@ -36,7 +36,7 @@ jobs:
         run: |
           npm install
           chmod +x mvnw 
-          ./mvnw -ntp verify -DskipTests --batch-mode "-Pprod" "-Pe2e" "-Denforcer.skip=true"
+          ./mvnw -ntp com.heroku.sdk:heroku-maven-plugin:2.0.5:deploy -DskipTests -Pprod -Dheroku.buildpacks=heroku/jvm -Dheroku.appName=shrouded-chamber-49561
           npm run ci:e2e:prepare:docker
           npm run ci:e2e:run
           npm run ci:e2e:teardown
