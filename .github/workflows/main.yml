@@ -36,3 +36,4 @@ jobs:
         run: |
           npm install
           chmod +x mvnw && npm run ci:backend:test
+          npm run ci:frontend:test
