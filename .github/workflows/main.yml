@@ -6,36 +6,137 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: '*'
   pull_request:
-    branches: [ main ]
+    branches: '*'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
+  job1:
+    name: Initialisation
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
-            node-version: 14.16.1
+          node-version: 14.16.1
       - uses: actions/setup-java@v1
         with:
-            java-version: '11.x'
+          java-version: '11.x'
+  
+  job2:
+    name: Tests Front
+    needs: job1
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
 
-      # Runs a set of commands using the runners shell
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14.16.1
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11.x'
       - name: Install node.js packages
-        run: |
-          npm install
-          chmod +x mvnw 
-          npm run ci:e2e:prepare:docker
-          npm run e2e
-          
+        run: npm install
+      - name: Run front tests
+        run: npm run ci:frontend:test
+      - name: Run local front tests
+        run: npm run test
+  
+  job3:
+    name: Tests Back
+    needs: job1
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14.16.1
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11.x'
+      - name: Install node.js packages
+        run: npm install
+      - name: Change rights
+        run: chmod +x mvnw && npm run ci:backend:test
+      - name: Run local back tests
+        run: npm run backend:unit:test
+  
+  job4:
+    name: Tests E2E
+    needs: [job2, job3]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14.16.1
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11.x'
+      - name: Jar
+        run: ./mvnw -ntp verify -DskipTests --batch-mode "-Pprod" "-Pe2e" "-Denforcer.skip=true"
+      - name: BDD
+        run: npm run ci:e2e:prepare:docker
+        
+  job5:
+    name: Sonar
+    needs: job4
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14.16.1
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11.x'
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Build and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=hugosui_tp-dev-ops
+        
+  job6:
+    name: Deploy
+    needs: job5
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14.16.1
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11.x'
+      - name: Heroku
+        env: 
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: ./mvnw -ntp com.heroku.sdk:heroku-maven-plugin:2.0.5:deploy -DskipTests -Pprod -Dheroku.buildpacks=heroku/jvm -Dheroku.appName=
