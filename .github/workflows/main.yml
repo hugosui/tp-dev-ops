@@ -47,9 +47,6 @@ jobs:
           java-version: '11.x'
       - name: Install node.js packages
         run: npm install
-      - name: Run front tests
-        #run: npm run e2e skip
-
   
   job3:
     name: Tests Back
